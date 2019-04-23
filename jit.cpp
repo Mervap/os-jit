@@ -12,7 +12,7 @@
 
 using func_type = uint64_t (*)();
 
-unsigned char code[] = {
+static unsigned char code[] = {
         0x55,
         0x48, 0x89, 0xe5,
         0x48, 0xb8, 0x00, 0x00, 0x00, 0x0, 0x00, 0x00, 0x00, 0x00,
@@ -30,6 +30,8 @@ unsigned char code[] = {
         0x5d,
         0xc3
 };
+
+static const size_t code_size = sizeof(code);
 
 // Сode received from here
 int power_of_two() {
@@ -80,19 +82,20 @@ uint64_t get_ull(std::string number) {
 void fix_code(uint64_t n) {
     std::stringstream stream;
     stream << std::hex << n;
-    std::string result(stream.str());
+    std::string hex(stream.str());
 
-    if (result.length() % 2 == 1) {
-        result = "0" + result;
+    if (hex.length() % 2 == 1) {
+        hex = "0" + hex;
     }
 
-    std::string subs[result.length() / 2];
-    for (int i = 0; i < result.length(); i += 2) {
-        subs[i / 2] += result.substr(i, 2);
+    size_t len = hex.length() / 2;
+    std::string subs[len];
+    for (int i = 0; i < hex.length(); i += 2) {
+        subs[i / 2] += hex.substr(i, 2);
     }
 
-    std::reverse(subs, subs + result.length() / 2);
-    for (int i = 0; i < result.length() / 2; ++i) {
+    std::reverse(subs, subs + len);
+    for (int i = 0; i < len; ++i) {
         code[6 + i] = (unsigned char) strtol(subs[i].c_str(), nullptr, 16);
     }
 }
@@ -123,16 +126,16 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
-    auto *data = mmap(nullptr, sizeof(code), PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    auto *data = mmap(nullptr, code_size, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (data == MAP_FAILED) {
         print_err("Can't allocate memory");
         return EXIT_FAILURE;
     }
 
     fix_code(n);
-    memcpy(data, code, sizeof(code));
+    memcpy(data, code, code_size);
 
-    if (mprotect(data, sizeof(code), PROT_READ | PROT_EXEC) == -1) {
+    if (mprotect(data, code_size, PROT_READ | PROT_EXEC) == -1) {
         print_err("Can't execute function");
         return EXIT_FAILURE;
     }
@@ -140,5 +143,9 @@ int main(int argc, char **argv) {
     auto res = (reinterpret_cast<func_type>(data))();
     std::cout << res << std::endl;
 
+    if (munmap(data, code_size) == -1) {
+        print_err("Can't free memory");
+        return EXIT_FAILURE;
+    }
 }
 
