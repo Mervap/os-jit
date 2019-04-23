@@ -10,9 +10,12 @@
 #include <sys/mman.h>
 #include <sstream>
 
-using func_type = uint64_t (*)();
+#include "templates.h"
 
-static unsigned char code[] = {
+using power_func_type = uint64_t (*)();
+using substr_type = int (*)(const char *s);
+
+static byte power_code[] = {
         0x55,
         0x48, 0x89, 0xe5,
         0x48, 0xb8, 0x00, 0x00, 0x00, 0x0, 0x00, 0x00, 0x00, 0x00,
@@ -30,22 +33,6 @@ static unsigned char code[] = {
         0x5d,
         0xc3
 };
-
-static const size_t code_size = sizeof(code);
-
-// Сode received from here
-int power_of_two() {
-    uint64_t n = 16;
-    int ans = 0;
-    uint64_t cur = 1;
-
-    while (cur * 2 <= n) {
-        ++ans;
-        cur *= 2;
-    }
-
-    return ans;
-}
 
 static void print_err(const std::string &message) {
     std::cerr << "\033[31m" << message;
@@ -80,43 +67,39 @@ uint64_t get_ull(std::string number) {
 }
 
 void fix_code(uint64_t n) {
-    std::stringstream stream;
-    stream << std::hex << n;
-    std::string hex(stream.str());
-
-    if (hex.length() % 2 == 1) {
-        hex = "0" + hex;
-    }
-
-    size_t len = hex.length() / 2;
-    std::string subs[len];
-    for (int i = 0; i < hex.length(); i += 2) {
-        subs[i / 2] += hex.substr(i, 2);
-    }
-
-    std::reverse(subs, subs + len);
-    for (int i = 0; i < len; ++i) {
-        code[6 + i] = (unsigned char) strtol(subs[i].c_str(), nullptr, 16);
+    auto hex = get_hex(n);
+    for (int i = 0; i < hex.size(); ++i) {
+        power_code[6 + i] = hex[i];
     }
 }
 
-int main(int argc, char **argv) {
+void *place_code(unsigned char *code_to_place, size_t length) {
+    auto *data = mmap(nullptr, length, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (data == MAP_FAILED) {
+        print_err("Can't allocate memory");
+        return MAP_FAILED;
+    }
 
-    if (argc < 2) {
-        print_err("Number expected, use help");
+    memcpy(data, code_to_place, length);
+
+    if (mprotect(data, length, PROT_READ | PROT_EXEC) == -1) {
+        print_err("Can't execute function");
+        return MAP_FAILED;
+    }
+
+    return data;
+}
+
+int clean(void *mem_to_clean, size_t length) {
+    if (munmap(mem_to_clean, length) == -1) {
+        print_err("Can't free memory");
         return EXIT_FAILURE;
     }
 
-    if (argc > 2) {
-        print_err("Too many arguments, use help");
-        return EXIT_FAILURE;
-    }
+    return EXIT_SUCCESS;
+}
 
-    std::string arg(argv[1]);
-    if (arg == "help") {
-        print_help();
-        return EXIT_SUCCESS;
-    }
+int power(const std::string &arg) {
 
     uint64_t n;
     try {
@@ -126,26 +109,82 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
-    auto *data = mmap(nullptr, code_size, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if (data == MAP_FAILED) {
-        print_err("Can't allocate memory");
-        return EXIT_FAILURE;
-    }
-
     fix_code(n);
-    memcpy(data, code, code_size);
-
-    if (mprotect(data, code_size, PROT_READ | PROT_EXEC) == -1) {
-        print_err("Can't execute function");
+    auto *data = place_code(power_code, sizeof(power_code));
+    if (data == MAP_FAILED) {
         return EXIT_FAILURE;
     }
 
-    auto res = (reinterpret_cast<func_type>(data))();
+    auto res = (reinterpret_cast<power_func_type>(data))();
+
     std::cout << res << std::endl;
 
-    if (munmap(data, code_size) == -1) {
-        print_err("Can't free memory");
+    return clean(data, sizeof(power_code));
+}
+
+int substring(int length, const char *s, const char *substr) {
+
+    auto e = get_code(length, substr);
+
+    auto *data = place_code(e.data(), e.size());
+    if (data == MAP_FAILED) {
         return EXIT_FAILURE;
     }
+
+    auto res = (reinterpret_cast<substr_type>(data))(s);
+
+    if (res == -1) {
+        std::cout << "No match" << std::endl;
+    } else {
+        std::cout << res << std::endl;
+    }
+
+    return clean(data, e.size());
+}
+
+
+int main(int argc, char **argv) {
+
+    if (argc < 2) {
+        print_err("Command expected, use help");
+        return EXIT_FAILURE;
+    }
+
+
+    std::string arg(argv[1]);
+    if (arg == "help") {
+        print_help();
+        return EXIT_SUCCESS;
+    }
+
+    if (arg == "power") {
+        if (argc > 3) {
+            print_err("Too many arguments, use help");
+            return EXIT_FAILURE;
+        }
+        return power(std::string(argv[2]));
+    }
+
+    if (arg == "substr") {
+        if (argc < 4) {
+            print_err("Too few arguments, use help");
+            return EXIT_FAILURE;
+        }
+
+        if (argc > 4) {
+            print_err("Too many arguments, use help");
+            return EXIT_FAILURE;
+        }
+
+        if (strlen(argv[2]) < strlen(argv[3])) {
+            std::cout << "No match" << std::endl;
+            return EXIT_SUCCESS;
+        }
+
+        return substring(strlen(argv[2]), argv[2], argv[3]);
+    }
+
+    print_err("Unknown command");
+    return EXIT_FAILURE;
 }
 
