@@ -10,7 +10,7 @@
 #include <sys/mman.h>
 #include <sstream>
 
-using fun_type = uint64_t (*)();
+using func_type = uint64_t (*)();
 
 unsigned char code[] = {
         0x55,
@@ -31,6 +31,7 @@ unsigned char code[] = {
         0xc3
 };
 
+// Сode received from here
 int power_of_two() {
     uint64_t n = 16;
     int ans = 0;
@@ -57,7 +58,7 @@ static void print_help() {
               << std::endl
               << "n must be a positive integer number" << std::endl
               << "use: ./power <number>" << std::endl
-              << "or ./power help - for help";
+              << "or ./power help - for help" << std::endl;
 }
 
 uint64_t get_ull(std::string number) {
@@ -90,10 +91,9 @@ void fix_code(uint64_t n) {
         subs[i / 2] += result.substr(i, 2);
     }
 
-//6
     std::reverse(subs, subs + result.length() / 2);
     for (int i = 0; i < result.length() / 2; ++i) {
-        code[6 + i] = (unsigned char) strtol(subs[i].c_str(), NULL, 16);
+        code[6 + i] = (unsigned char) strtol(subs[i].c_str(), nullptr, 16);
     }
 }
 
@@ -115,11 +115,6 @@ int main(int argc, char **argv) {
         return EXIT_SUCCESS;
     }
 
-    if (arg[0] == '-') {
-        print_err(arg + " is not a positive");
-        return EXIT_FAILURE;
-    }
-
     uint64_t n;
     try {
         n = get_ull(arg);
@@ -131,20 +126,19 @@ int main(int argc, char **argv) {
     auto *data = mmap(nullptr, sizeof(code), PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (data == MAP_FAILED) {
         print_err("Can't allocate memory");
-        return 0;
+        return EXIT_FAILURE;
     }
 
     fix_code(n);
-
     memcpy(data, code, sizeof(code));
 
     if (mprotect(data, sizeof(code), PROT_READ | PROT_EXEC) == -1) {
-        print_err("Can't execute func");
-        return 0;
+        print_err("Can't execute function");
+        return EXIT_FAILURE;
     }
 
-    auto res = (reinterpret_cast<fun_type>(data))();
-    std::cout << res << " " << power_of_two() << std::endl;
+    auto res = (reinterpret_cast<func_type>(data))();
+    std::cout << res << std::endl;
 
 }
 
