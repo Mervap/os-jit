@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <vector>
 #include <fstream>
+#include <cstring>
 
 #include "templates.h"
 #include "common.h"
@@ -36,6 +37,9 @@ static void print_help() {
     std::cout << "Includes 2 utilities:" << std::endl
               << "power <n> — by this number n finds the maximum k such that 2^k <= n" << std::endl
               << "substr <a> <b> — on these strings a and b finds the first occurrence of string b in a or reports that there are no occurrences"
+              << std::endl << std::endl
+              << "There is also one testing tool:" << std::endl
+              << "perf — for check performance of jit substring searcher by comparing with not-jit naive algorithm and prefix-function"
               << std::endl;
 }
 
@@ -74,15 +78,9 @@ uint64_t power(const std::string &arg) {
 
     fix_code(n);
     auto *data = place_code(power_code, power_code_size);
-    if (data == MAP_FAILED) {
-        exit(EXIT_FAILURE);
-    }
-
     auto res = (reinterpret_cast<power_func_type>(data))();
 
-    if (clean(data, power_code_size) == EXIT_FAILURE) {
-        exit(EXIT_FAILURE);
-    }
+    clean(data, power_code_size);
 
     return res;
 }
@@ -96,18 +94,12 @@ int substring(const char *s, const char *substr) {
         return -1;
     }
 
-    auto e = get_code(substr);
+    auto code = get_code(substr);
 
-    auto *data = place_code(e.data(), e.size());
-    if (data == MAP_FAILED) {
-        exit(EXIT_FAILURE);
-    }
-
+    auto *data = place_code(code.data(), code.size());
     auto res = (reinterpret_cast<substr_type>(data))(s, length - sub_length + 1);
 
-    if (clean(data, e.size()) == EXIT_FAILURE) {
-        exit(EXIT_FAILURE);
-    }
+    clean(data, code.size());
 
     return res;
 }
@@ -115,7 +107,7 @@ int substring(const char *s, const char *substr) {
 
 int main(int argc, char **argv) {
 
-    if (argc < 2 ) {
+    if (argc < 2) {
         print_err("Incorrect size of args, use help");
         return EXIT_FAILURE;
     }
@@ -161,7 +153,7 @@ int main(int argc, char **argv) {
         return EXIT_SUCCESS;
     }
 
-    print_err("Unknown command");
+    print_err("Unknown command, use help");
     return EXIT_FAILURE;
 }
 

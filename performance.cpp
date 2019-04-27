@@ -64,7 +64,7 @@ int prefix(const std::string &a, const std::string &b) {
     return -1;
 }
 
-int native(const std::string &a, const std::string &b) {
+int naive(const std::string &a, const std::string &b) {
     for (int i = 0; i < a.size() - b.size() + 1; ++i) {
         for (int j = 0; j < b.size(); ++j) {
             if (a[i + j] != b[j]) {
@@ -90,12 +90,8 @@ times run(int a_size, int b_size, int cycle_cnt) {
     std::string b = get_str(b_size);
 
     auto start = std::chrono::steady_clock::now();
-    auto e = get_code(b);
-
-    auto *data = place_code(e.data(), e.size());
-    if (data == MAP_FAILED) {
-        exit(EXIT_FAILURE);
-    }
+    auto code = get_code(b);
+    auto *data = place_code(code.data(), code.size());
     auto end = std::chrono::steady_clock::now();
 
     uint64_t time = get_nanosec(end - start), time1 = 0, time2 = 0;
@@ -110,7 +106,7 @@ times run(int a_size, int b_size, int cycle_cnt) {
         time += get_nanosec(end - start);
 
         start = std::chrono::steady_clock::now();
-        int r2 = native(a, b);
+        int r2 = naive(a, b);
         end = std::chrono::steady_clock::now();
 
         time1 += get_nanosec(end - start);
@@ -124,9 +120,7 @@ times run(int a_size, int b_size, int cycle_cnt) {
     }
 
     start = std::chrono::steady_clock::now();
-    if (clean(data, e.size()) == EXIT_FAILURE) {
-        exit(EXIT_FAILURE);
-    }
+    clean(data, code.size());
     end = std::chrono::steady_clock::now();
 
     time += get_nanosec(end - start);
@@ -153,7 +147,7 @@ void check_performance() {
             std::cout << "string size = " << sizes[i] << ", substr size = " << sizes[j] << ", cycles = "
                       << cycles_cnt[j] << std::endl
                       << "jit   : " << time.jit / NANOSEC_IN_MILLISEC << "ms" << std::endl
-                      << "native: " << time.native / NANOSEC_IN_MILLISEC << "ms" << std::endl
+                      << "naive : " << time.native / NANOSEC_IN_MILLISEC << "ms" << std::endl
                       << "prefix: " << time.pref / NANOSEC_IN_MILLISEC << "ms" << std::endl << std::endl;
         }
     }

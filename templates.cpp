@@ -34,49 +34,49 @@ void concat(std::vector<byte> &a, const std::vector<byte> &b) {
     a.insert(a.end(), b.begin(), b.end());
 }
 
-std::vector<byte> lea(const std::vector<byte> &f) {
+std::vector<byte> lea(const std::vector<byte> &bytes) {
     std::vector<byte> ans = {0x48, 0x8d, 0x90, 0x00, 0x00, 0x00, 0x00};
 
-    for (int i = 0; i < f.size(); ++i) {
-        ans[3 + i] = f[i];
+    for (int i = 0; i < bytes.size(); ++i) {
+        ans[3 + i] = bytes[i];
     }
 
     return ans;
 }
 
-std::vector<byte> j(byte f, const std::vector<byte> &d) {
-    std::vector<byte> ans = {0x0f, f, 0x00, 0x00, 0x00, 0x00};
+std::vector<byte> j(byte type, const std::vector<byte> &bytes) {
+    std::vector<byte> ans = {0x0f, type, 0x00, 0x00, 0x00, 0x00};
 
-    for (int i = 0; i < d.size(); ++i) {
-        ans[2 + i] = d[i];
+    for (int i = 0; i < bytes.size(); ++i) {
+        ans[2 + i] = bytes[i];
     }
 
     return ans;
 }
 
 
-std::vector<byte> jg(const std::vector<byte> &d) {
-    return j(0x8f, d);
+std::vector<byte> jg(const std::vector<byte> &bytes) {
+    return j(0x8f, bytes);
 }
 
-std::vector<byte> jne(const std::vector<byte> &d) {
-    return j(0x85, d);
+std::vector<byte> jne(const std::vector<byte> &bytes) {
+    return j(0x85, bytes);
 }
 
 std::vector<byte> get_cmp(int n, char c, int d) {
-    std::vector<byte> beg = {0x8b, 0x45, 0xfc,
+    std::vector<byte> result = {0x8b, 0x45, 0xfc,
                              0x48, 0x98};
 
-    concat(beg, lea(get_hex(n)));
+    concat(result, lea(get_hex(n)));
 
-    concat(beg, {0x48, 0x8b, 0x45, 0xe8,
+    concat(result, {0x48, 0x8b, 0x45, 0xe8,
                  0x48, 0x01, 0xd0,
                  0x0f, 0xb6, 0x00,
                  0x3c, get_hex((int) c)[0]});
 
-    concat(beg, jne(get_hex(d)));
+    concat(result, jne(get_hex(d)));
 
-    return beg;
+    return result;
 }
 
 std::vector<byte> get_code(const std::string &s) {
