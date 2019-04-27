@@ -7,4 +7,4 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_GLIBCXX_DEBUG -fsanitize=
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
 add_executable(utils
-        jit.cpp templates.h)
+        jit.cpp templates.h common.h performance.cpp performance.h templates.cpp)
