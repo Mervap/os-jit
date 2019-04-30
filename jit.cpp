@@ -22,13 +22,15 @@ static byte power_code[] = {
         0x48, 0x8b, 0x45, 0xf0,                                     // 21: mov    rax, QWORD PTR [rbp-0x10]
         0x48, 0x01, 0xc0,                                           // 25: add    rax, rax
         0x48, 0x39, 0x45, 0xf8,                                     // 28: cmp    QWORD PTR [rbp-0x8], rax
-        0x72, 0x0a,                                                 // 2c: jb     0x38
-        0x83, 0x45, 0xec, 0x01,                                     // 2e: add    DWORD PTR [rbp-0x14], 0x1
-        0x48, 0xd1, 0x65, 0xf0,                                     // 32: shl    QWORD PTR [rbp-0x10], 1
-        0xeb, 0xe9,                                                 // 36: jmp    0x21
-        0x8b, 0x45, 0xec,                                           // 38: mov    eax, DWORD PTR [rbp-0x14]
-        0x5d,                                                       // 3b: pop    rbp
-        0xc3                                                        // 3c: ret
+        0x72, 0x10,                                                 // 2c: jb     0x3e
+        0x83, 0x7d, 0xec, 0x3e,                                     // 2e: cmp    DWORD PTR [rbp-0x14], 0x3e
+        0x7f, 0x0a,                                                 // 32: jg     0x3e
+        0x83, 0x45, 0xec, 0x01,                                     // 34: add    DWORD PTR [rbp-0x14], 0x1
+        0x48, 0xd1, 0x65, 0xf0,                                     // 38: shl    QWORD PTR [rbp-0x10], 1
+        0xeb, 0xe3,                                                 // 3c: jmp    0x21
+        0x8b, 0x45, 0xec,                                           // 3e: mov    eax, DWORD PTR [rbp-0x14]
+        0x5d,                                                       // 41: pop    rbp
+        0xc3                                                        // 42: ret
 };
 
 static const int power_code_size = sizeof(power_code);

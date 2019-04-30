@@ -112,11 +112,11 @@ std::vector<byte> get_code(const std::string &s) {
 
 // Prototypes for JIT
 int power_of_two() {
-    uint64_t n = 16;
+    uint64_t n = 12841248121241212421ull;
     int ans = 0;
     uint64_t cur = 1;
 
-    while (cur * 2 <= n) {
+    while (cur * 2 <= n && ans < 63) {
         ++ans;
         cur *= 2;
     }

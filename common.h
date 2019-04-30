@@ -7,7 +7,7 @@
 
 #include <iostream>
 
-using power_func_type = uint64_t (*)();
+using power_func_type = int (*)();
 using substr_type = int (*)(const char *s, int size);
 
 void print_err(const std::string &message);
